@@ -1,226 +1,225 @@
-# ShakaQuest - 中学受験社会学習アプリ
+# ShakaQuest 完全版 - 中学受験社会学習アプリ
 
-DuoLingoライクなゲーミフィケーション要素を持つ、中学受験向け社会学習アプリです。47都道府県と県庁所在地を楽しく効率的に学習できます。
+**地理・歴史・公民の3分野完全対応の中学受験社会学習アプリ**
 
-## 🚀 機能
+## 🌟 機能
 
-### 📚 学習機能
-- **47都道府県と県庁所在地の完全データベース**
-- **4種類の問題形式**:
-  - 4択問題（都道府県名 → 県庁所在地）
-  - 4択問題（県庁所在地 → 都道府県名）
-  - ランダム出題システム
-  - 地域別学習サポート
+### 📚 学習コンテンツ
+- **🗾 地理分野** (11問)
+  - 47都道府県・県庁所在地
+  - 日本の6つの気候区分
+  - 農業・水産業・工業
+  - 伝統工業・公害問題
+  - 各地方の特色
 
-### 🎮 ゲーミフィケーション
-- **経験値(XP)システム**: 正解するごとにXPを獲得
-- **レベルアップ**: XPに応じてレベルが上昇
-- **コイン獲得**: 正解数に応じたコイン報酬
-- **連続学習ストリーク**: 学習継続の動機付け
-- **実績バッジ**: 達成度に応じた各種バッジ
+- **📜 歴史分野** (15問)  
+  - 17時代区分（旧石器時代～昭和時代）
+  - 重要人物・事件・年号
+  - 政治制度の変化
+  - 文化史
 
-### 📱 PWA対応
-- **アプリインストール**: ホーム画面に追加可能
-- **オフライン学習**: インターネット接続なしでも利用可能
-- **レスポンシブデザイン**: スマホ・タブレット・PC対応
+- **🏛️ 公民分野** (20問)
+  - 日本国憲法三大原則
+  - 三権分立（国会・内閣・裁判所）
+  - 基本的人権・新しい人権
+  - 地方自治・国際関係
 
-## 🛠 技術スタック
+### 🎮 ゲーミフィケーション機能
+- **レベルシステム**: 11段階（初心者→達人）
+- **バッジシステム**: 12種類の実績バッジ
+- **XP・コインシステム**: 学習でポイント獲得
+- **ストリーク機能**: 連続学習日数記録
+- **詳細統計**: 分野別学習進捗追跡
 
-- **フレームワーク**: Next.js 14 (App Router)
-- **言語**: TypeScript
-- **スタイリング**: Tailwind CSS
-- **PWA**: Custom Service Worker
-- **状態管理**: React Hooks + localStorage
+### 🖥️ ユーザー体験
+- **完全レスポンシブデザイン**: スマホ・タブレット・PC対応
+- **PWA対応**: アプリとしてインストール可能
+- **タイマー機能**: 30秒制限の緊張感ある学習
+- **詳細解説**: 各問題に分かりやすい解説付き
+- **DuoLingoライクUI**: 直感的で楽しい学習体験
 
-## 📦 セットアップ
+## 🚀 セットアップ
 
 ### 前提条件
 - Node.js 18以上
 - npm または yarn
 
 ### インストール
-
-1. **プロジェクトのクローン**
-   ```bash
-   git clone <repository-url>
-   cd shakaquest
-   ```
-
-2. **依存関係のインストール**
-   ```bash
-   npm install
-   # または
-   yarn install
-   ```
-
-3. **開発サーバーの起動**
-   ```bash
-   npm run dev
-   # または
-   yarn dev
-   ```
-
-4. **ブラウザで確認**
-   ```
-   http://localhost:3000
-   ```
-
-### PWAアイコンの生成（オプション）
-
-PWAアイコンを自動生成するには、プロジェクトディレクトリでHTMLファイルを開いてください:
-
 ```bash
-open public/icon-generator.html
+# プロジェクトをクローン
+git clone https://github.com/username/shakaquest-deploy.git
+cd shakaquest-deploy
+
+# 依存関係をインストール
+npm install
+
+# 開発サーバーを起動
+npm run dev
 ```
 
-## 🏗 プロジェクト構造
+### PWAアイコン生成
+```bash
+# アイコン生成ページにアクセス
+open http://localhost:3000/icon-generator.html
+
+# 512x512のアイコンをアップロードして各サイズを生成
+# 生成されたファイルをpublic/iconsフォルダに保存
+```
+
+## 📁 プロジェクト構造
 
 ```
-shakaquest/
+shakaquest-deploy/
 ├── src/
-│   ├── app/                 # Next.js App Router
-│   │   ├── api/
-│   │   │   └── manifest/    # PWA Manifest API
-│   │   ├── quiz/            # クイズページ
-│   │   ├── results/         # 結果ページ
-│   │   ├── layout.tsx       # レイアウト
-│   │   ├── page.tsx         # ホームページ
-│   │   └── globals.css      # グローバルスタイル
-│   ├── components/          # Reactコンポーネント
-│   │   └── Layout.tsx       # レイアウトコンポーネント
-│   └── data/               # データ定義
-│       └── geography.ts     # 都道府県データ
-├── public/                 # 静的ファイル
-│   ├── sw.js              # Service Worker
-│   └── icon-*.png         # PWAアイコン
+│   ├── app/                    # Next.js App Router
+│   │   ├── layout.tsx         # メインレイアウト
+│   │   ├── page.tsx           # ホームページ
+│   │   └── quiz/
+│   │       └── page.tsx       # クイズページ
+│   ├── components/            # UIコンポーネント
+│   └── data/                  # 学習データ
+│       ├── geography-enhanced.ts
+│       ├── history.ts
+│       ├── civics.ts
+│       └── index.ts           # 統合データ管理
+├── public/                    # 静的ファイル
+│   ├── icons/                 # PWAアイコン
+│   └── icon-generator.html    # アイコン生成ツール
 ├── package.json
-├── next.config.js         # Next.js設定
-├── tailwind.config.js     # Tailwind設定
-└── tsconfig.json          # TypeScript設定
+├── next.config.js            # PWA設定
+├── tailwind.config.js
+└── tsconfig.json
 ```
 
 ## 🎯 使用方法
 
 ### 基本的な学習フロー
-
-1. **ホーム画面**: 学習統計と進捗確認
-2. **クイズ開始**: 10問のランダム問題
-3. **問題解答**: 4択から正解を選択
-4. **即座のフィードバック**: 正解・不正解の表示
-5. **結果確認**: スコア・統計・実績確認
+1. **ホーム画面**で学習分野を選択（地理・歴史・公民）
+2. **カテゴリ選択**で学習したい単元を選択
+3. **クイズ開始**で問題に挑戦（5問構成）
+4. **結果確認**で正答率・獲得XP・学習時間を確認
 
 ### 問題形式
+- **4択問題**: 基本的な知識確認
+- **穴埋め問題**: 重要用語の暗記確認
+- **マッチング問題**: 関連性の理解確認
+- **地図選択問題**: 地理的位置の確認
 
-- **都道府県 → 県庁所在地**: 「北海道」の県庁所在地は？
-- **県庁所在地 → 都道府県**: 県庁所在地が「札幌市」の都道府県は？
+## 🛠️ カスタマイズ
 
-### データの永続化
-
-学習データは**localStorage**に保存され、ブラウザを閉じても保持されます:
-
-- 総経験値・レベル
-- 獲得コイン数
-- 完了クイズ数
-- 正答率統計
-- 最新の結果
-
-## 🔧 カスタマイズ
-
-### 問題数の変更
-
-`src/app/quiz/page.tsx`の`generateQuestions`関数で問題数を調整:
-
+### 新しい問題の追加
 ```typescript
-const selectedPrefectures = getRandomPrefectures(10); // 10問 → 任意の数
-```
-
-### 配色の変更
-
-`tailwind.config.js`でカラーパレットを調整:
-
-```javascript
-theme: {
-  extend: {
-    colors: {
-      primary: {
-        500: '#your-color', // メインカラー変更
-      }
-    }
+// src/data/geography-enhanced.ts
+export const geographyQuestions: GeographyQuestion[] = [
+  {
+    id: 12,
+    question: "新しい問題文",
+    options: ["選択肢A", "選択肢B", "選択肢C", "選択肢D"],
+    correct: 0,
+    explanation: "詳細な解説文",
+    category: "prefectures",
+    difficulty: "medium",
+    type: "multiple-choice"
   }
-}
+];
 ```
 
-### 地域フィルターの追加
-
-`src/data/geography.ts`にある`getPrefecturesByRegion`関数を使用して地域別出題が可能:
-
+### 新しいカテゴリの追加
 ```typescript
-const tokyoAreaPrefectures = getPrefecturesByRegion("関東");
+// src/data/index.ts
+export const subjects: Subject[] = [
+  {
+    id: 'geography',
+    categories: [
+      { id: 'new-category', name: '新カテゴリ', description: '説明', questionCount: 5 }
+    ]
+  }
+];
 ```
 
-## 🚀 デプロイ
+## 🌐 デプロイ
 
 ### Vercelでのデプロイ
+```bash
+# Vercel CLIをインストール
+npm i -g vercel
 
-1. **Vercelアカウント作成**: [vercel.com](https://vercel.com)
-2. **GitHubリポジトリ接続**: プロジェクトをGitHubにpush
-3. **自動デプロイ**: Vercelが自動でビルド・デプロイ
+# デプロイ実行
+vercel
 
-### その他のプラットフォーム
+# 本番環境にデプロイ
+vercel --prod
+```
 
-- **Netlify**: 同様の手順で簡単デプロイ
-- **GitHub Pages**: 静的サイトとしてホスティング可能
+### Netlifyでのデプロイ
+```bash
+# ビルド
+npm run build
+
+# 静的ファイルをNetlifyにアップロード
+# または GitHub連携で自動デプロイ
+```
 
 ## 📱 PWA機能
 
 ### インストール手順
-
 **iOS Safari**:
-1. サイトを開く
+1. ブラウザでアプリを開く
 2. 共有ボタンをタップ
-3. "ホーム画面に追加"を選択
+3. 「ホーム画面に追加」を選択
 
 **Android Chrome**:
-1. サイトを開く
-2. メニューから"アプリをインストール"
-3. "インストール"をタップ
+1. ブラウザでアプリを開く
+2. メニュー → 「アプリをインストール」
 
 ### オフライン機能
+- Service Workerによるキャッシュ
+- オフライン時でも基本機能利用可能
+- 接続回復時に自動同期
 
-Service Workerにより以下が可能:
-- オフライン時のアプリ起動
-- 基本機能の継続利用
-- ローカルデータでの学習継続
+## 🏆 バッジシステム
 
-## 🤝 貢献
+| バッジ | 条件 | レアリティ |
+|--------|------|-----------|
+| 地理入門 | 地理問題5問正解 | Common |
+| 地理博士 | 地理問題20問正解 | Rare |
+| 歴史入門 | 歴史問題5問正解 | Common |
+| 歴史博士 | 歴史問題20問正解 | Rare |
+| 公民入門 | 公民問題5問正解 | Common |
+| 公民博士 | 公民問題20問正解 | Rare |
+| 完璧主義者 | 10問連続正解 | Epic |
+| スピードマスター | 5秒以内で10回正解 | Epic |
+| オールラウンダー | 全分野10問ずつ正解 | Legendary |
+| 学者 | 総問題数80%正解 | Legendary |
 
-プロジェクトへの貢献を歓迎します：
+## 🎚️ レベルシステム
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+| レベル | 名称 | 必要XP | 報酬 |
+|--------|------|--------|------|
+| 1 | 初心者 | 0-99 | 基本バッジ解放 |
+| 2 | 見習い | 100-249 | 新問題形式解放 |
+| 3 | 学習者 | 250-499 | ヒント機能解放 |
+| 4 | 努力家 | 500-999 | カスタムクイズ作成 |
+| 5 | 研究生 | 1000-1999 | 詳細統計表示 |
+| 11 | 達人 | 64000+ | 全機能完全解放 |
+
+## 🤝 コントリビューション
+
+1. Forkしてブランチを作成
+2. 機能追加・バグ修正
+3. テストを実行
+4. Pull Requestを作成
 
 ## 📄 ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。
+MIT License
 
-## 🎓 中学受験対応
+## 🙏 謝辞
 
-### 重要ポイント
-- **県名と県庁所在地が異なる18都道府県**を重点的に学習
-- **地域別学習**で効率的な記憶定着
-- **反復学習**によるしっかりとした基礎固め
-
-### 学習効果
-- 地理の基礎知識習得
-- 暗記効率の向上
-- 継続学習習慣の形成
-- ゲーミフィケーションによる学習動機の維持
+- スタディアップ様のコンテンツ構成を参考
+- DuoLingoのUI/UX設計を参考
+- Next.js・Tailwind CSSコミュニティ
 
 ---
 
-**開発チーム**: ShakaQuest Team  
-**対象**: 中学受験生・地理学習者  
-**更新**: 2024年最新版
+**ShakaQuest完全版で中学受験の社会科学習を楽しく効率的に！**

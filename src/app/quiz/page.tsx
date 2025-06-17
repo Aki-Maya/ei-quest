@@ -1,264 +1,330 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Layout from '@/components/Layout';
-import { prefectures, Prefecture, getRandomPrefectures } from '@/data/geography';
-
-interface QuizQuestion {
-  prefecture: Prefecture;
-  type: 'capital' | 'prefecture';
-  options: string[];
-  correctAnswer: string;
-}
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { 
+  getQuestionsBySubjectAndCategory, 
+  getRandomQuestionsMixed,
+  calculateXPFromScore,
+  type UnifiedQuestion 
+} from '@/data/index';
+import Link from 'next/link';
 
 interface QuizState {
-  questions: QuizQuestion[];
-  currentQuestionIndex: number;
-  selectedAnswer: string | null;
-  showResult: boolean;
-  score: number;
-  isComplete: boolean;
+  questions: UnifiedQuestion[];
+  currentIndex: number;
+  selectedAnswer: number | null;
+  answers: (number | null)[];
+  showExplanation: boolean;
+  isCompleted: boolean;
   startTime: number;
+  timeRemaining: number;
 }
 
-const QuizPage: React.FC = () => {
-  const router = useRouter();
+const QuizComponent = () => {
+  const searchParams = useSearchParams();
+  const subject = searchParams.get('subject');
+  const category = searchParams.get('category');
+
   const [quizState, setQuizState] = useState<QuizState>({
     questions: [],
-    currentQuestionIndex: 0,
+    currentIndex: 0,
     selectedAnswer: null,
-    showResult: false,
-    score: 0,
-    isComplete: false,
-    startTime: Date.now()
+    answers: [],
+    showExplanation: false,
+    isCompleted: false,
+    startTime: Date.now(),
+    timeRemaining: 30
   });
 
-  const generateQuestions = (): QuizQuestion[] => {
-    const selectedPrefectures = getRandomPrefectures(10);
+  // Initialize quiz
+  useEffect(() => {
+    let questions: UnifiedQuestion[] = [];
 
-    return selectedPrefectures.map(prefecture => {
-      const questionType = Math.random() > 0.5 ? 'capital' : 'prefecture';
+    if (subject && category) {
+      questions = getQuestionsBySubjectAndCategory(subject as any, category);
+    } else {
+      questions = getRandomQuestionsMixed(10);
+    }
 
-      if (questionType === 'capital') {
-        // Ask for capital given prefecture
-        const otherCapitals = prefectures
-          .filter(p => p.id !== prefecture.id)
-          .map(p => p.capital)
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3);
+    const shuffled = [...questions].sort(() => 0.5 - Math.random()).slice(0, 5);
 
-        const options = [prefecture.capital, ...otherCapitals].sort(() => 0.5 - Math.random());
+    setQuizState(prev => ({
+      ...prev,
+      questions: shuffled,
+      answers: new Array(shuffled.length).fill(null)
+    }));
+  }, [subject, category]);
 
-        return {
-          prefecture,
-          type: 'capital',
-          options,
-          correctAnswer: prefecture.capital
-        };
-      } else {
-        // Ask for prefecture given capital
-        const otherPrefectures = prefectures
-          .filter(p => p.id !== prefecture.id)
-          .map(p => p.name)
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3);
+  // Timer effect
+  useEffect(() => {
+    if (quizState.timeRemaining > 0 && !quizState.showExplanation && !quizState.isCompleted) {
+      const timerId = setTimeout(() => {
+        setQuizState(prev => ({ ...prev, timeRemaining: prev.timeRemaining - 1 }));
+      }, 1000);
+      return () => clearTimeout(timerId);
+    } else if (quizState.timeRemaining === 0 && !quizState.showExplanation) {
+      handleTimeUp();
+    }
+  }, [quizState.timeRemaining, quizState.showExplanation, quizState.isCompleted]);
 
-        const options = [prefecture.name, ...otherPrefectures].sort(() => 0.5 - Math.random());
+  const handleTimeUp = () => {
+    const newAnswers = [...quizState.answers];
+    newAnswers[quizState.currentIndex] = null;
 
-        return {
-          prefecture,
-          type: 'prefecture',
-          options,
-          correctAnswer: prefecture.name
-        };
-      }
-    });
+    setQuizState(prev => ({
+      ...prev,
+      answers: newAnswers,
+      showExplanation: true
+    }));
   };
 
-  useEffect(() => {
-    setQuizState(prev => ({
-      ...prev,
-      questions: generateQuestions(),
-      startTime: Date.now()
-    }));
-  }, []);
+  const handleAnswerSelect = (answerIndex: number) => {
+    if (quizState.showExplanation) return;
+    setQuizState(prev => ({ ...prev, selectedAnswer: answerIndex }));
+  };
 
-  const handleAnswerSelect = (answer: string) => {
+  const handleSubmitAnswer = () => {
+    const newAnswers = [...quizState.answers];
+    newAnswers[quizState.currentIndex] = quizState.selectedAnswer;
+
     setQuizState(prev => ({
       ...prev,
-      selectedAnswer: answer,
-      showResult: true
+      answers: newAnswers,
+      showExplanation: true
     }));
   };
 
   const handleNextQuestion = () => {
-    if (!quizState.selectedAnswer) return;
-
-    const isCorrect = quizState.selectedAnswer === quizState.questions[quizState.currentQuestionIndex].correctAnswer;
-    const newScore = quizState.score + (isCorrect ? 1 : 0);
-
-    if (quizState.currentQuestionIndex + 1 >= quizState.questions.length) {
-      // Quiz complete
-      const endTime = Date.now();
-      const duration = Math.round((endTime - quizState.startTime) / 1000);
-
-      // Save results to localStorage
-      const results = {
-        score: newScore,
-        total: quizState.questions.length,
-        duration,
-        completedAt: new Date().toISOString(),
-        questions: quizState.questions.map((q, index) => ({
-          question: q,
-          userAnswer: index === quizState.currentQuestionIndex ? quizState.selectedAnswer : null,
-          isCorrect: index === quizState.currentQuestionIndex ? isCorrect : null
-        }))
-      };
-
-      // Update user stats
-      const savedStats = localStorage.getItem('shakaquest-stats');
-      const stats = savedStats ? JSON.parse(savedStats) : {
-        totalXP: 0,
-        level: 1,
-        streak: 0,
-        coins: 0,
-        completedQuizzes: 0,
-        correctAnswers: 0,
-        totalAnswers: 0
-      };
-
-      const xpGained = newScore * 10;
-      const coinsGained = newScore * 5;
-
-      stats.totalXP += xpGained;
-      stats.coins += coinsGained;
-      stats.completedQuizzes += 1;
-      stats.correctAnswers += newScore;
-      stats.totalAnswers += quizState.questions.length;
-      stats.level = Math.floor(stats.totalXP / 100) + 1;
-
-      localStorage.setItem('shakaquest-stats', JSON.stringify(stats));
-      localStorage.setItem('shakaquest-last-result', JSON.stringify(results));
-
-      router.push('/results');
-    } else {
+    if (quizState.currentIndex < quizState.questions.length - 1) {
       setQuizState(prev => ({
         ...prev,
-        currentQuestionIndex: prev.currentQuestionIndex + 1,
+        currentIndex: prev.currentIndex + 1,
         selectedAnswer: null,
-        showResult: false,
-        score: newScore
+        showExplanation: false,
+        timeRemaining: 30
       }));
+    } else {
+      setQuizState(prev => ({ ...prev, isCompleted: true }));
     }
   };
 
+  const currentQuestion = quizState.questions[quizState.currentIndex];
+  const progress = ((quizState.currentIndex + 1) / quizState.questions.length) * 100;
+
+  const correctAnswers = quizState.answers.filter((answer, index) => 
+    answer === quizState.questions[index]?.correct
+  ).length;
+
+  const totalQuestions = quizState.questions.length;
+  const accuracy = Math.round((correctAnswers / totalQuestions) * 100);
+  const earnedXP = calculateXPFromScore(correctAnswers, totalQuestions, 'medium', true);
+
   if (quizState.questions.length === 0) {
     return (
-      <Layout title="クイズ">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">クイズを準備中...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">問題を読み込み中...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
-  const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
-  const progress = ((quizState.currentQuestionIndex + 1) / quizState.questions.length) * 100;
+  if (quizState.isCompleted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="text-6xl mb-4">🎉</div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">クイズ完了！</h1>
+
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="bg-green-100 rounded-lg p-4">
+                <div className="text-2xl font-bold text-green-800">{correctAnswers}/{totalQuestions}</div>
+                <div className="text-green-600">正解数</div>
+              </div>
+              <div className="bg-blue-100 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-800">{accuracy}%</div>
+                <div className="text-blue-600">正答率</div>
+              </div>
+              <div className="bg-purple-100 rounded-lg p-4">
+                <div className="text-2xl font-bold text-purple-800">+{earnedXP}</div>
+                <div className="text-purple-600">獲得XP</div>
+              </div>
+              <div className="bg-yellow-100 rounded-lg p-4">
+                <div className="text-2xl font-bold text-yellow-800">
+                  {Math.round((Date.now() - quizState.startTime) / 1000)}秒
+                </div>
+                <div className="text-yellow-600">所要時間</div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              {accuracy >= 80 && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                  素晴らしい！とても良い結果です！🌟
+                </div>
+              )}
+              {accuracy >= 60 && accuracy < 80 && (
+                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                  良い結果です！もう少し頑張りましょう！💪
+                </div>
+              )}
+              {accuracy < 60 && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  復習が必要かもしれません。頑張って続けましょう！📚
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-600 transition-colors"
+              >
+                もう一度挑戦
+              </button>
+              <Link
+                href="/"
+                className="block w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-bold hover:bg-gray-600 transition-colors"
+              >
+                ホームに戻る
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Layout title="クイズ">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-2xl mx-auto">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>問題 {quizState.currentQuestionIndex + 1} / {quizState.questions.length}</span>
-            <span>正解: {quizState.score}</span>
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <span className="text-2xl">
+                {currentQuestion?.subject === 'geography' ? '🗾' : 
+                 currentQuestion?.subject === 'history' ? '📜' : '🏛️'}
+              </span>
+              <span className="ml-2 text-lg font-bold">
+                {currentQuestion?.subject === 'geography' ? '地理' : 
+                 currentQuestion?.subject === 'history' ? '歴史' : '公民'}
+              </span>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-red-500">{quizState.timeRemaining}秒</div>
+              <div className="text-sm text-gray-600">残り時間</div>
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+
+          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
             <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-blue-500 rounded-full h-3 transition-all duration-300" 
               style={{ width: `${progress}%` }}
-            ></div>
+            />
+          </div>
+          <div className="text-center text-sm text-gray-600">
+            問題 {quizState.currentIndex + 1} / {quizState.questions.length}
           </div>
         </div>
 
-        {/* Question Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-          <div className="text-center mb-6">
-            <div className="text-sm text-gray-500 mb-2">
-              {currentQuestion.prefecture.region}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="mb-6">
+            <div className="flex items-center mb-2">
+              <span className={`px-2 py-1 rounded text-xs font-bold text-white ${
+                currentQuestion?.difficulty === 'easy' ? 'bg-green-500' :
+                currentQuestion?.difficulty === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
+              }`}>
+                {currentQuestion?.difficulty === 'easy' ? '初級' :
+                 currentQuestion?.difficulty === 'medium' ? '中級' : '上級'}
+              </span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentQuestion.type === 'capital' 
-                ? `「${currentQuestion.prefecture.name}」の県庁所在地は？`
-                : `県庁所在地が「${currentQuestion.prefecture.capital}」の都道府県は？`
-              }
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              {currentQuestion?.question}
             </h2>
           </div>
 
-          {/* Options */}
-          <div className="space-y-3">
-            {currentQuestion.options.map((option, index) => {
-              let buttonClass = "w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all duration-200";
+          <div className="space-y-3 mb-6">
+            {currentQuestion?.options.map((option, index) => {
+              let buttonClass = "w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ";
 
-              if (quizState.showResult && quizState.selectedAnswer === option) {
-                if (option === currentQuestion.correctAnswer) {
-                  buttonClass = "w-full p-4 text-left border-2 border-green-500 bg-green-50 rounded-lg";
+              if (quizState.showExplanation) {
+                if (index === currentQuestion.correct) {
+                  buttonClass += "bg-green-100 border-green-500 text-green-800";
+                } else if (index === quizState.selectedAnswer && index !== currentQuestion.correct) {
+                  buttonClass += "bg-red-100 border-red-500 text-red-800";
                 } else {
-                  buttonClass = "w-full p-4 text-left border-2 border-red-500 bg-red-50 rounded-lg";
+                  buttonClass += "bg-gray-100 border-gray-300 text-gray-600";
                 }
-              } else if (quizState.showResult && option === currentQuestion.correctAnswer) {
-                buttonClass = "w-full p-4 text-left border-2 border-green-500 bg-green-50 rounded-lg";
+              } else if (quizState.selectedAnswer === index) {
+                buttonClass += "bg-blue-100 border-blue-500 text-blue-800";
+              } else {
+                buttonClass += "bg-white border-gray-300 text-gray-800 hover:bg-gray-50";
               }
 
               return (
                 <button
                   key={index}
-                  onClick={() => !quizState.showResult && handleAnswerSelect(option)}
-                  disabled={quizState.showResult}
+                  onClick={() => handleAnswerSelect(index)}
+                  disabled={quizState.showExplanation}
                   className={buttonClass}
                 >
-                  <span className="font-medium">{option}</span>
+                  <span className="font-bold mr-2">{String.fromCharCode(65 + index)}.</span>
+                  {option}
                 </button>
               );
             })}
           </div>
 
-          {/* Result Feedback */}
-          {quizState.showResult && (
-            <div className="mt-6 p-4 rounded-lg bg-gray-50">
-              <div className="text-center">
-                {quizState.selectedAnswer === currentQuestion.correctAnswer ? (
-                  <div className="text-green-600 font-semibold">🎉 正解！</div>
-                ) : (
-                  <div>
-                    <div className="text-red-600 font-semibold">❌ 不正解</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      正解: {currentQuestion.correctAnswer}
-                    </div>
-                  </div>
-                )}
-              </div>
+          {quizState.showExplanation && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h3 className="font-bold text-blue-800 mb-2">解説</h3>
+              <p className="text-blue-700">{currentQuestion?.explanation}</p>
             </div>
           )}
-        </div>
 
-        {/* Navigation */}
-        <div className="flex justify-center">
-          {quizState.showResult ? (
-            <button
-              onClick={handleNextQuestion}
-              className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-            >
-              {quizState.currentQuestionIndex + 1 >= quizState.questions.length ? '結果を見る' : '次の問題'}
-            </button>
-          ) : (
-            <div className="text-gray-500">選択肢をクリックしてください</div>
-          )}
+          <div className="text-center">
+            {!quizState.showExplanation ? (
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={quizState.selectedAnswer === null}
+                className={`px-8 py-3 rounded-lg font-bold transition-colors ${
+                  quizState.selectedAnswer !== null
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                回答する
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                className="bg-green-500 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-600 transition-colors"
+              >
+                {quizState.currentIndex < quizState.questions.length - 1 ? '次の問題' : '結果を見る'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </Layout>
+    </div>
+  );
+};
+
+const QuizPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <QuizComponent />
+    </Suspense>
   );
 };
 
